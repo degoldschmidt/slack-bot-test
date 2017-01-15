@@ -49,7 +49,8 @@ gsheets = GApp(MY_DNID)
 # instantiate Slack & Twilio clients
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
 
-def direct(response):
+def direct(response, channel):
+    print("respond:", response)
     slack_client.api_call("chat.postMessage", channel=channel,
                           text=response, as_user=True)
 
@@ -79,9 +80,9 @@ def handle_command(command, channel):
             rangeName = 'DNs A!A1:A66'
             values = gsheets.get_data(rangeName)
             if not values:
-                direct('No data found.')
+                direct('No data found.', channel)
             else:
-                direct('https://docs.google.com/a/neuro.fchampalimaud.org/spreadsheets/d/12mzn6soIUlPeWOQINdXH7PzClHvmCD9HxAfAigSL0pY/edit?usp=sharing')
+                direct('https://docs.google.com/a/neuro.fchampalimaud.org/spreadsheets/d/12mzn6soIUlPeWOQINdXH7PzClHvmCD9HxAfAigSL0pY/edit?usp=sharing', channel)
     else:
         response = rand.choice(respUnknown)
     slack_client.api_call("chat.postMessage", channel=channel,
@@ -100,14 +101,17 @@ def parse_slack_output(slack_rtm_output):
     output_list = slack_rtm_output
     if output_list and len(output_list) > 0:
         for output in output_list:
-            if output and 'text' in output and AT_BOT in output['text']:
-                # return text after the @ mention, whitespace removed
-                return output['text'].split(AT_BOT)[1].strip().lower(), \
-                       output['channel']
-            if output and 'text' in output and BOT_NAME in output['text']:
-                # return text after the @ mention, whitespace removed
-                return output['text'].split(BOT_NAME)[1].strip().lower(), \
-                       output['channel']
+            if output and 'text' in output:
+                phr = output['text'].lower()
+                if AT_BOT in phr or BOT_NAME in phr:
+                    # return text after the @ mention, whitespace removed
+                    print(phr, BOT_NAME, AT_BOT)
+                    if phr == BOT_NAME or phr == AT_BOT:
+                        print(phr == BOT_NAME, phr == AT_BOT)
+                        direct("Yes?", output['channel'])
+                    else:
+                        return output['text'].split(AT_BOT)[1].strip().lower(), \
+                                output['channel']
     return None, None
 
 if __name__ == "__main__":
